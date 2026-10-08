@@ -11,3 +11,4 @@ final flashcardsStreamProvider = StreamProvider.family<List<Flashcard>, String>(
   final flashcardService = ref.watch(flashcardServiceProvider);
   return flashcardService.getFlashcardsForDeck(deckId);
 });
+

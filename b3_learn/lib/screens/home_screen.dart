@@ -12,18 +12,26 @@ class HomeScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Notes de version'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('✨ Nouveautés de la version 1.0 :'),
-            SizedBox(height: 8),
-            Text('- Thème sombre intégral.'),
-            Text('- Création de paquets de cartes (titre & description).'),
-            Text('- Sauvegarde en temps réel sur Firebase (Firestore).'),
-            Text('- Application PWA installable.'),
-          ],
-        ),
+          content: const SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('✨ V 1.1 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent)),
+                SizedBox(height: 4),
+                Text('- Ajout du système de cartes (Flashcards).'),
+                Text('- Possibilité d\'ajouter des photos (Recto/Verso).'),
+                Text('- Interface de visualisation des paquets.'),
+                Divider(height: 24),
+                Text('📦 V 1.0', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                SizedBox(height: 4),
+                Text('- Thème sombre intégral.'),
+                Text('- Création de paquets de cartes (titre & description).'),
+                Text('- Sauvegarde en temps réel sur Firebase (Firestore).'),
+                Text('- Application PWA installable.'),
+              ],
+            ),
+          ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
