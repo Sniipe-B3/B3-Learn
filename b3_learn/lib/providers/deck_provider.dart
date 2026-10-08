@@ -12,3 +12,4 @@ final decksStreamProvider = StreamProvider<List<Deck>>((ref) {
   final deckService = ref.watch(deckServiceProvider);
   return deckService.getDecks();
 });
+

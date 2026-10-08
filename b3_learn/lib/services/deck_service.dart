@@ -25,3 +25,4 @@ class DeckService {
     await _firestore.collection('decks').add(newDeck.toMap());
   }
 }
+
