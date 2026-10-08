@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/deck.dart';
 import '../providers/flashcard_provider.dart';
 import 'create_flashcard_screen.dart';
+import 'review_screen.dart';
 
 class DeckDetailsScreen extends ConsumerWidget {
   final Deck deck;
@@ -20,9 +21,11 @@ class DeckDetailsScreen extends ConsumerWidget {
             icon: const Icon(Icons.play_arrow),
             tooltip: 'Lancer la révision',
             onPressed: () {
-              // TODO: Lancer l'écran de révision
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Le système de révision arrivera bientôt !')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReviewScreen(deck: deck),
+                ),
               );
             },
           ),
