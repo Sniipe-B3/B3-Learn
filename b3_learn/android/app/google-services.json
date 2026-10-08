@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "816680711906",
+    "project_id": "b3-learn",
+    "storage_bucket": "b3-learn.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:816680711906:android:ec78aff547144af5ae10bb",
+        "android_client_info": {
+          "package_name": "com.example.b3_learn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDw-LT9a1Skm_vX7lcErHUsPwUe2v4nA8I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
