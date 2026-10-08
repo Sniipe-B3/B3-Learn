@@ -6,3 +6,4 @@
 2. Mettre à jour le bouton "Notes de version" dans `lib/screens/home_screen.dart` en ajoutant la nouvelle version en haut de la liste de manière chronologique.
 3. Toujours vérifier la propreté du code avec `flutter analyze`.
 
+4. À chaque version validée, faire systématiquement un `git add`, `git commit` et `git push`.
