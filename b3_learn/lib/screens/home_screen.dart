@@ -1,44 +1,134 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/deck_provider.dart';
 import 'create_deck_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
+  void _showReleaseNotes(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Notes de version'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('✨ Nouveautés de la version 1.0 :'),
+            SizedBox(height: 8),
+            Text('- Thème sombre intégral.'),
+            Text('- Création de paquets de cartes (titre & description).'),
+            Text('- Sauvegarde en temps réel sur Firebase (Firestore).'),
+            Text('- Application PWA installable.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final decksAsyncValue = ref.watch(decksStreamProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('B3-Learn - Mes Paquets'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.new_releases),
+            tooltip: 'Notes de version',
+            onPressed: () => _showReleaseNotes(context),
+          ),
+        ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.style, size: 64, color: Colors.deepPurpleAccent),
-            const SizedBox(height: 16),
-            const Text(
-              'Bienvenue sur B3-Learn',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text('Vos paquets de cartes apparaîtront ici.'),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CreateDeckScreen(),
+      body: decksAsyncValue.when(
+        data: (decks) {
+          if (decks.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.style, size: 64, color: Colors.deepPurpleAccent),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Bienvenue sur B3-Learn',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Créer un paquet'),
-            )
-          ],
-        ),
+                  const SizedBox(height: 8),
+                  const Text('Vos paquets de cartes apparaîtront ici.'),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CreateDeckScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Créer mon premier paquet'),
+                  )
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: decks.length,
+            itemBuilder: (context, index) {
+              final deck = decks[index];
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.deepPurple,
+                    child: Icon(Icons.style, color: Colors.white),
+                  ),
+                  title: Text(
+                    deck.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: deck.description.isNotEmpty 
+                      ? Text(deck.description, maxLines: 1, overflow: TextOverflow.ellipsis) 
+                      : null,
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    // TODO: Ouvrir le paquet
+                  },
+                ),
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text('Erreur: $error')),
+      ),
+      floatingActionButton: decksAsyncValue.maybeWhen(
+        data: (decks) => decks.isNotEmpty
+            ? FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CreateDeckScreen(),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.add),
+              )
+            : null,
+        orElse: () => null,
       ),
     );
   }
 }
-
