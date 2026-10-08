@@ -59,51 +59,77 @@ class DeckDetailsScreen extends ConsumerWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: cards.length,
-            itemBuilder: (context, index) {
-              final card = cards[index];
-              return Card(
-                elevation: 2,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('RECTO', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                      if (card.frontImageUrl != null && card.frontImageUrl!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Image.network(
-                            card.frontImageUrl!, 
-                            height: 150, 
-                            width: double.infinity, 
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Text('Erreur de chargement de l\'image (CORS)'),
-                          ),
-                        ),
-                      Text(card.frontText, style: const TextStyle(fontSize: 16)),
-                      const Divider(height: 24),
-                      const Text('VERSO', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                      if (card.backImageUrl != null && card.backImageUrl!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Image.network(
-                            card.backImageUrl!, 
-                            height: 150, 
-                            width: double.infinity, 
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Text('Erreur de chargement de l\'image (CORS)'),
-                          ),
-                        ),
-                      Text(card.backText, style: const TextStyle(fontSize: 16)),
-                    ],
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size(double.infinity, 50),
                   ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReviewScreen(deck: deck),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.play_circle_fill),
+                  label: const Text('LANCER LA RÉVISION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
-              );
-            },
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: cards.length,
+                  itemBuilder: (context, index) {
+                    final card = cards[index];
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('RECTO', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            if (card.frontImageUrl != null && card.frontImageUrl!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Image.network(
+                                  card.frontImageUrl!, 
+                                  height: 150, 
+                                  width: double.infinity, 
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => const Text('Erreur de chargement de l\'image (CORS)'),
+                                ),
+                              ),
+                            Text(card.frontText, style: const TextStyle(fontSize: 16)),
+                            const Divider(height: 24),
+                            const Text('VERSO', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                            if (card.backImageUrl != null && card.backImageUrl!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Image.network(
+                                  card.backImageUrl!, 
+                                  height: 150, 
+                                  width: double.infinity, 
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => const Text('Erreur de chargement de l\'image (CORS)'),
+                                ),
+                              ),
+                            Text(card.backText, style: const TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -128,4 +154,3 @@ class DeckDetailsScreen extends ConsumerWidget {
     );
   }
 }
-

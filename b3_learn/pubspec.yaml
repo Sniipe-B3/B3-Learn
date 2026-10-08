@@ -41,6 +41,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   image_picker: ^1.2.4
   flutter_card_swiper: ^7.2.0
+  flip_card: ^0.7.0
 
 dev_dependencies:
   flutter_test:
