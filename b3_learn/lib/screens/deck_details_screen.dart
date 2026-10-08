@@ -70,18 +70,30 @@ class DeckDetailsScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('RECTO', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                      if (card.frontImageUrl != null)
+                      if (card.frontImageUrl != null && card.frontImageUrl!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Image.network(card.frontImageUrl!, height: 100, fit: BoxFit.cover),
+                          child: Image.network(
+                            card.frontImageUrl!, 
+                            height: 150, 
+                            width: double.infinity, 
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Text('Erreur de chargement de l\'image (CORS)'),
+                          ),
                         ),
                       Text(card.frontText, style: const TextStyle(fontSize: 16)),
                       const Divider(height: 24),
                       const Text('VERSO', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                      if (card.backImageUrl != null)
+                      if (card.backImageUrl != null && card.backImageUrl!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Image.network(card.backImageUrl!, height: 100, fit: BoxFit.cover),
+                          child: Image.network(
+                            card.backImageUrl!, 
+                            height: 150, 
+                            width: double.infinity, 
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Text('Erreur de chargement de l\'image (CORS)'),
+                          ),
                         ),
                       Text(card.backText, style: const TextStyle(fontSize: 16)),
                     ],
