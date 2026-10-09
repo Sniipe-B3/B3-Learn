@@ -16,20 +16,6 @@ class DeckDetailsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(deck.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.play_arrow),
-            tooltip: 'Lancer la révision',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ReviewScreen(deck: deck),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: flashcardsAsync.when(
         data: (cards) {
@@ -70,10 +56,41 @@ class DeckDetailsScreen extends ConsumerWidget {
                     minimumSize: const Size(double.infinity, 50),
                   ),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ReviewScreen(deck: deck),
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Options de révision'),
+                        content: const Text('Comment souhaitez-vous réviser ces cartes ?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context); // Fermer la modale
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ReviewScreen(deck: deck, shuffle: false),
+                                ),
+                              );
+                            },
+                            child: const Text('Dans l\'ordre'),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.black,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context); // Fermer la modale
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ReviewScreen(deck: deck, shuffle: true),
+                                ),
+                              );
+                            },
+                            child: const Text('Aléatoire'),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -100,6 +117,7 @@ class DeckDetailsScreen extends ConsumerWidget {
                               children: [
                                 const Text('RECTO', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
                                       icon: const Icon(Icons.edit, size: 20),

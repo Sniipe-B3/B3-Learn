@@ -9,7 +9,8 @@ import '../providers/review_provider.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
   final Deck deck;
-  const ReviewScreen({super.key, required this.deck});
+  final bool shuffle;
+  const ReviewScreen({super.key, required this.deck, this.shuffle = true});
 
   @override
   ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
@@ -42,7 +43,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     if (currentSession == null) {
       // Nouvelle session
       final cardIds = cardsAsync.value!.map((c) => c.id).toList();
-      cardIds.shuffle();
+      if (widget.shuffle) {
+        cardIds.shuffle();
+      }
       await notifier.startNewSession(widget.deck.id, cardIds);
       
       setState(() {
@@ -149,7 +152,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
               final cardsAsync = ref.read(flashcardsStreamProvider(widget.deck.id));
               if (cardsAsync.value != null) {
                 final cardIds = cardsAsync.value!.map((c) => c.id).toList();
-                cardIds.shuffle();
+                if (widget.shuffle) {
+                  cardIds.shuffle();
+                }
                 await ref.read(activeSessionProvider.notifier).startNewSession(widget.deck.id, cardIds);
                 setState(() {
                   _cardsToReview = cardIds.map((id) => cardsAsync.value!.firstWhere((c) => c.id == id)).toList();
