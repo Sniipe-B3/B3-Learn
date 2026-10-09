@@ -4,6 +4,7 @@ import '../models/deck.dart';
 import '../providers/flashcard_provider.dart';
 import 'create_flashcard_screen.dart';
 import 'review_screen.dart';
+import '../widgets/zoomable_image.dart';
 
 class DeckDetailsScreen extends ConsumerWidget {
   final Deck deck;
@@ -176,13 +177,7 @@ class DeckDetailsScreen extends ConsumerWidget {
                             if (card.frontImageUrl != null && card.frontImageUrl!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                child: Image.network(
-                                  card.frontImageUrl!, 
-                                  height: 150, 
-                                  width: double.infinity, 
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => const Text('Erreur de chargement de l\'image (CORS)'),
-                                ),
+                                child: ZoomableImage(imageUrl: card.frontImageUrl!),
                               ),
                             Text(card.frontText, style: const TextStyle(fontSize: 16)),
                             const Divider(height: 24),
@@ -190,13 +185,7 @@ class DeckDetailsScreen extends ConsumerWidget {
                             if (card.backImageUrl != null && card.backImageUrl!.isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                child: Image.network(
-                                  card.backImageUrl!, 
-                                  height: 150, 
-                                  width: double.infinity, 
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => const Text('Erreur de chargement de l\'image (CORS)'),
-                                ),
+                                child: ZoomableImage(imageUrl: card.backImageUrl!),
                               ),
                             Text(card.backText, style: const TextStyle(fontSize: 16)),
                           ],

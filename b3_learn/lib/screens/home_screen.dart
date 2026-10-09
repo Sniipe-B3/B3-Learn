@@ -1,8 +1,10 @@
+import '../models/deck.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/deck_provider.dart';
 import 'create_deck_screen.dart';
 import 'deck_details_screen.dart';
+import 'review_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,7 +19,14 @@ class HomeScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('✨ V 1.3.1 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                Text('✨ V 1.4 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                SizedBox(height: 4),
+                Text('- Ajout du mode Révision Globale (Mélange de plusieurs paquets).'),
+                Text('- Amélioration de l\'affichage des photos (non rognées + clic pour zoomer).'),
+                Text('- Ajout d\'un écran de fin de révision avec chronomètre.'),
+                Text('- Correction des bugs de révision (compteur de cartes, verso affiché trop tôt).'),
+                Divider(height: 24),
+                Text('📦 V 1.3.1', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                 SizedBox(height: 4),
                 Text('- Ajout du choix de l\'ordre de révision (Aléatoire / Ordre).'),
                 Text('- Correction de l\'affichage de l\'icône de suppression.'),
@@ -114,106 +123,189 @@ class HomeScreen extends ConsumerWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: decks.length,
-            itemBuilder: (context, index) {
-              final deck = decks[index];
-              return Card(
-                elevation: 2,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.deepPurple,
-                    child: Icon(Icons.style, color: Colors.white),
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size(double.infinity, 50),
                   ),
-                  title: Text(
-                    deck.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: deck.description.isNotEmpty 
-                      ? Text(deck.description, maxLines: 1, overflow: TextOverflow.ellipsis) 
-                      : null,
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) async {
-                      if (value == 'edit') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CreateDeckScreen(deckToEdit: deck),
-                          ),
-                        );
-                      } else if (value == 'delete') {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Supprimer le paquet ?'),
-                            content: const Text('Toutes les cartes de ce paquet seront supprimées. Cette action est irréversible.'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Annuler'),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        final selectedDecks = <Deck>[...decks];
+                        return StatefulBuilder(
+                          builder: (context, setStateDialog) {
+                            return AlertDialog(
+                              title: const Text('Révision globale'),
+                              content: SizedBox(
+                                width: double.maxFinite,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('Sélectionnez les paquets à inclure :'),
+                                    const SizedBox(height: 16),
+                                    Expanded(
+                                      child: ListView.builder(
+                                        shrinkWrap: true,
+                                        itemCount: decks.length,
+                                        itemBuilder: (context, index) {
+                                          final d = decks[index];
+                                          return CheckboxListTile(
+                                            title: Text(d.title),
+                                            value: selectedDecks.contains(d),
+                                            onChanged: (val) {
+                                              setStateDialog(() {
+                                                if (val == true) {
+                                                  selectedDecks.add(d);
+                                                } else {
+                                                  selectedDecks.remove(d);
+                                                }
+                                              });
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-                              ),
-                            ],
-                          ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Annuler'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: selectedDecks.isEmpty ? null : () {
+                                    Navigator.pop(context);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ReviewScreen(globalDecks: selectedDecks, shuffle: true),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text('Lancer (Mélangé)'),
+                                ),
+                              ],
+                            );
+                          },
                         );
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.shuffle),
+                  label: const Text('RÉVISION GLOBALE', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: decks.length,
+                  itemBuilder: (context, index) {
+                    final deck = decks[index];
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Colors.deepPurple,
+                          child: Icon(Icons.style, color: Colors.white),
+                        ),
+                        title: Text(
+                          deck.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: deck.description.isNotEmpty 
+                            ? Text(deck.description, maxLines: 1, overflow: TextOverflow.ellipsis) 
+                            : null,
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (value) async {
+                            if (value == 'edit') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CreateDeckScreen(deckToEdit: deck),
+                                ),
+                              );
+                            } else if (value == 'delete') {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Supprimer le paquet ?'),
+                                  content: const Text('Toutes les cartes de ce paquet seront supprimées. Cette action est irréversible.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('Annuler'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              );
 
-                        if (confirm == true) {
-                          try {
-                            await ref.read(deckServiceProvider).deleteDeck(deck.id);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Paquet supprimé')),
-                              );
+                              if (confirm == true) {
+                                try {
+                                  await ref.read(deckServiceProvider).deleteDeck(deck.id);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Paquet supprimé')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Erreur: $e')),
+                                    );
+                                  }
+                                }
+                              }
                             }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erreur: $e')),
-                              );
-                            }
-                          }
-                        }
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Modifier'),
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Modifier'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red, size: 20),
-                            SizedBox(width: 8),
-                            Text('Supprimer', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DeckDetailsScreen(deck: deck),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DeckDetailsScreen(deck: deck),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
                 ),
-              );
-            },
+              ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),

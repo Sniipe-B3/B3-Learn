@@ -2,15 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flip_card/flip_card.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/deck.dart';
 import '../models/flashcard.dart';
 import '../providers/flashcard_provider.dart';
 import '../providers/review_provider.dart';
+import '../widgets/zoomable_image.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
-  final Deck deck;
+  final Deck? deck; // null = révision globale
+  final List<Deck>? globalDecks;
   final bool shuffle;
-  const ReviewScreen({super.key, required this.deck, this.shuffle = true});
+  
+  const ReviewScreen({
+    super.key, 
+    this.deck, 
+    this.globalDecks,
+    this.shuffle = true,
+  });
 
   @override
   ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
@@ -19,9 +28,13 @@ class ReviewScreen extends ConsumerStatefulWidget {
 class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   final CardSwiperController _swiperController = CardSwiperController();
   
-  // Liste locale des cartes pour le swiper
   List<Flashcard> _cardsToReview = [];
   bool _isInitialized = false;
+  bool _isFinished = false;
+  int _currentIndex = 0;
+  
+  DateTime? _startTime;
+  Duration? _elapsedTime;
 
   @override
   void initState() {
@@ -32,33 +45,59 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   Future<void> _initSession() async {
-    final notifier = ref.read(activeSessionProvider.notifier);
-    await notifier.loadSession(widget.deck.id);
-    
-    final currentSession = ref.read(activeSessionProvider).value;
-    final cardsAsync = ref.read(flashcardsStreamProvider(widget.deck.id));
-    
-    if (cardsAsync.value == null) return;
+    _currentIndex = 0;
+    _isFinished = false;
+    _startTime = DateTime.now();
 
-    if (currentSession == null) {
-      // Nouvelle session
-      final cardIds = cardsAsync.value!.map((c) => c.id).toList();
-      if (widget.shuffle) {
-        cardIds.shuffle();
+    if (widget.deck != null) {
+      // --- REVISION CLASSIQUE D'UN PAQUET ---
+      final notifier = ref.read(activeSessionProvider.notifier);
+      await notifier.loadSession(widget.deck!.id);
+      
+      final currentSession = ref.read(activeSessionProvider).value;
+      final cardsAsync = ref.read(flashcardsStreamProvider(widget.deck!.id));
+      
+      if (cardsAsync.value == null) return;
+
+      if (currentSession == null) {
+        final cardIds = cardsAsync.value!.map((c) => c.id).toList();
+        if (widget.shuffle) cardIds.shuffle();
+        await notifier.startNewSession(widget.deck!.id, cardIds);
+        
+        setState(() {
+          _cardsToReview = cardIds.map((id) => cardsAsync.value!.firstWhere((c) => c.id == id)).toList();
+          _isInitialized = true;
+        });
+      } else {
+        setState(() {
+          _cardsToReview = currentSession.remainingCardIds
+              .map((id) => cardsAsync.value!.firstWhere((c) => c.id == id, orElse: () => cardsAsync.value!.first))
+              .toList();
+          _isInitialized = true;
+        });
       }
-      await notifier.startNewSession(widget.deck.id, cardIds);
+    } else if (widget.globalDecks != null && widget.globalDecks!.isNotEmpty) {
+      // --- REVISION GLOBALE ---
+      List<Flashcard> allCards = [];
+      for (var d in widget.globalDecks!) {
+        final snapshot = await FirebaseFirestore.instance.collection('decks').doc(d.id).collection('flashcards').get();
+        final cards = snapshot.docs.map((doc) => Flashcard.fromMap(doc.data(), doc.id)).toList();
+        allCards.addAll(cards);
+      }
+      
+      if (widget.shuffle) {
+        allCards.shuffle();
+      }
       
       setState(() {
-        _cardsToReview = cardIds.map((id) => cardsAsync.value!.firstWhere((c) => c.id == id)).toList();
+        _cardsToReview = allCards;
         _isInitialized = true;
       });
     } else {
-      // Reprendre la session
+      // Securité
       setState(() {
-        _cardsToReview = currentSession.remainingCardIds
-            .map((id) => cardsAsync.value!.firstWhere((c) => c.id == id, orElse: () => cardsAsync.value!.first))
-            .toList();
         _isInitialized = true;
+        _isFinished = true;
       });
     }
   }
@@ -67,6 +106,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   void dispose() {
     _swiperController.dispose();
     super.dispose();
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
   }
 
   Widget _buildCardFace({required Flashcard card, required bool isBack}) {
@@ -101,7 +147,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(card.frontImageUrl!, fit: BoxFit.cover, width: double.infinity),
+                    child: ZoomableImage(imageUrl: card.frontImageUrl!, height: double.infinity),
                   ),
                 ),
               ),
@@ -111,7 +157,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(card.backImageUrl!, fit: BoxFit.cover, width: double.infinity),
+                    child: ZoomableImage(imageUrl: card.backImageUrl!, height: double.infinity),
                   ),
                 ),
               ),
@@ -136,35 +182,44 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   Widget build(BuildContext context) {
     if (!_isInitialized) {
       return Scaffold(
-        appBar: AppBar(title: Text('Révision : ${widget.deck.title}')),
+        appBar: AppBar(title: Text(widget.deck != null ? 'Révision : ${widget.deck!.title}' : 'Révision Globale')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
+    final int remainingCards = _cardsToReview.length - _currentIndex;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Révision : ${widget.deck.title}'),
+        title: Text(widget.deck != null ? 'Révision : ${widget.deck!.title}' : 'Révision Globale'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Recommencer du début',
             onPressed: () async {
-              final cardsAsync = ref.read(flashcardsStreamProvider(widget.deck.id));
-              if (cardsAsync.value != null) {
-                final cardIds = cardsAsync.value!.map((c) => c.id).toList();
-                if (widget.shuffle) {
-                  cardIds.shuffle();
+              if (widget.deck != null) {
+                final cardsAsync = ref.read(flashcardsStreamProvider(widget.deck!.id));
+                if (cardsAsync.value != null) {
+                  final cardIds = cardsAsync.value!.map((c) => c.id).toList();
+                  if (widget.shuffle) {
+                    cardIds.shuffle();
+                  }
+                  await ref.read(activeSessionProvider.notifier).startNewSession(widget.deck!.id, cardIds);
+                  setState(() {
+                    _cardsToReview = cardIds.map((id) => cardsAsync.value!.firstWhere((c) => c.id == id)).toList();
+                    _currentIndex = 0;
+                    _isFinished = false;
+                    _startTime = DateTime.now();
+                  });
                 }
-                await ref.read(activeSessionProvider.notifier).startNewSession(widget.deck.id, cardIds);
-                setState(() {
-                  _cardsToReview = cardIds.map((id) => cardsAsync.value!.firstWhere((c) => c.id == id)).toList();
-                });
+              } else {
+                _initSession(); // Recharger pour la globale
               }
             },
           )
         ],
       ),
-      body: _cardsToReview.isEmpty
+      body: (_isFinished || _cardsToReview.isEmpty)
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -173,11 +228,14 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   const SizedBox(height: 24),
                   const Text('Félicitations !', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text('Vous avez terminé ce paquet.', style: TextStyle(fontSize: 18, color: Colors.grey.shade400)),
+                  const Text('Vous avez terminé cette révision.', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  if (_elapsedTime != null)
+                    Text('Temps écoulé : ${_formatDuration(_elapsedTime!)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.amber)),
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Retour aux paquets'),
+                    child: const Text('Retour'),
                   )
                 ],
               ),
@@ -187,7 +245,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Cartes restantes : ${_cardsToReview.length}',
+                    'Cartes restantes : $remainingCards',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -196,25 +254,35 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     controller: _swiperController,
                     cardsCount: _cardsToReview.length,
                     isLoop: false,
+                    onEnd: () {
+                      setState(() {
+                        _isFinished = true;
+                        _elapsedTime = DateTime.now().difference(_startTime!);
+                      });
+                    },
                     onSwipe: (previousIndex, currentIndex, direction) {
                       final swipedCard = _cardsToReview[previousIndex];
                       final known = direction == CardSwiperDirection.right;
                       
-                      ref.read(activeSessionProvider.notifier).swipeCard(swipedCard.id, known);
-                      
-                      // Si la carte n'est pas connue, on l'ajoute à la fin de NOTRE liste locale
-                      if (!known) {
-                        setState(() {
-                          _cardsToReview.add(swipedCard);
-                        });
+                      if (widget.deck != null) {
+                        ref.read(activeSessionProvider.notifier).swipeCard(swipedCard.id, known);
                       }
+                      
+                      setState(() {
+                        if (!known) {
+                          _cardsToReview.add(swipedCard);
+                        }
+                        // increment current index
+                        _currentIndex++;
+                      });
                       return true;
                     },
-                    numberOfCardsDisplayed: _cardsToReview.length > 2 ? 2 : _cardsToReview.length,
+                    numberOfCardsDisplayed: remainingCards > 2 ? 2 : remainingCards,
                     backCardOffset: const Offset(0, -40),
                     cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
                       final card = _cardsToReview[index];
                       return FlipCard(
+                        key: ValueKey('${card.id}_$index'), // Ensures the card resets its flip state
                         direction: FlipDirection.HORIZONTAL,
                         front: _buildCardFace(card: card, isBack: false),
                         back: _buildCardFace(card: card, isBack: true),
