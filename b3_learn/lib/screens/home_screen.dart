@@ -17,7 +17,12 @@ class HomeScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('✨ V 1.3 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                Text('✨ V 1.3.1 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                SizedBox(height: 4),
+                Text('- Ajout du choix de l\'ordre de révision (Aléatoire / Ordre).'),
+                Text('- Correction de l\'affichage de l\'icône de suppression.'),
+                Divider(height: 24),
+                Text('📦 V 1.3', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                 SizedBox(height: 4),
                 Text('- Ajout de l\'édition de paquets et de cartes (CRUD).'),
                 Text('- Ajout de la suppression de paquets et de cartes.'),
