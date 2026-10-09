@@ -3,6 +3,7 @@ class Deck {
   final String title;
   final String description;
   final DateTime createdAt;
+  final int order;
   // userId sera ajouté plus tard avec l'authentification
   
   Deck({
@@ -10,6 +11,7 @@ class Deck {
     required this.title,
     this.description = '',
     required this.createdAt,
+    this.order = 0,
   });
 
   // Convertir l'objet en Map pour Firebase
@@ -18,6 +20,7 @@ class Deck {
       'title': title,
       'description': description,
       'createdAt': createdAt.toIso8601String(),
+      'order': order,
     };
   }
 
@@ -30,7 +33,7 @@ class Deck {
       createdAt: map['createdAt'] != null 
           ? DateTime.parse(map['createdAt']) 
           : DateTime.now(),
+      order: map['order'] ?? 0,
     );
   }
 }
-

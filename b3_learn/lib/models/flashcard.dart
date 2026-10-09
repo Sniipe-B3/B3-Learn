@@ -6,6 +6,7 @@ class Flashcard {
   final String backText;
   final String? backImageUrl;
   final DateTime createdAt;
+  final int order;
 
   Flashcard({
     required this.id,
@@ -15,6 +16,7 @@ class Flashcard {
     required this.backText,
     this.backImageUrl,
     required this.createdAt,
+    this.order = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -25,6 +27,7 @@ class Flashcard {
       'backText': backText,
       'backImageUrl': backImageUrl,
       'createdAt': createdAt.toIso8601String(),
+      'order': order,
     };
   }
 
@@ -39,7 +42,7 @@ class Flashcard {
       createdAt: map['createdAt'] != null 
           ? DateTime.parse(map['createdAt']) 
           : DateTime.now(),
+      order: map['order'] ?? 0,
     );
   }
 }
-

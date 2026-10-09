@@ -13,11 +13,21 @@ class FlashcardService {
         .collection('decks')
         .doc(deckId)
         .collection('flashcards')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Flashcard.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+          final cards = snapshot.docs
+              .map((doc) => Flashcard.fromMap(doc.data(), doc.id))
+              .toList();
+          
+          cards.sort((a, b) {
+            if (a.order != b.order) {
+              return a.order.compareTo(b.order);
+            }
+            return a.createdAt.compareTo(b.createdAt);
+          });
+          
+          return cards;
+        });
   }
   
   // Uploader une image dans Firebase Storage
@@ -44,6 +54,7 @@ class FlashcardService {
       backText: backText,
       backImageUrl: backImageUrl,
       createdAt: DateTime.now(),
+      order: DateTime.now().millisecondsSinceEpoch,
     );
 
     await _firestore
@@ -73,6 +84,16 @@ class FlashcardService {
       'backText': backText,
       'backImageUrl': backImageUrl,
     });
+  }
+  
+  // Réordonner les cartes
+  Future<void> updateFlashcardsOrder(String deckId, List<Flashcard> cards) async {
+    final batch = _firestore.batch();
+    for (int i = 0; i < cards.length; i++) {
+      final ref = _firestore.collection('decks').doc(deckId).collection('flashcards').doc(cards[i].id);
+      batch.update(ref, {'order': i});
+    }
+    await batch.commit();
   }
 
   // Supprimer une carte

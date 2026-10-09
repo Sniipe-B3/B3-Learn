@@ -2,9 +2,40 @@ import '../models/deck.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/deck_provider.dart';
+import '../providers/theme_provider.dart';
 import 'create_deck_screen.dart';
 import 'deck_details_screen.dart';
 import 'review_screen.dart';
+
+class SettingsDialog extends ConsumerWidget {
+  const SettingsDialog({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+    return AlertDialog(
+      title: const Text('Paramètres'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SwitchListTile(
+            title: const Text('Mode Sombre'),
+            value: themeMode == ThemeMode.dark,
+            onChanged: (val) {
+              ref.read(themeProvider.notifier).toggleTheme(val);
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Fermer'),
+        ),
+      ],
+    );
+  }
+}
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -19,7 +50,14 @@ class HomeScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('✨ V 1.4 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                Text('✨ V 1.5 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                SizedBox(height: 4),
+                Text('- Ajout du Drag & Drop pour réorganiser les paquets et cartes.'),
+                Text('- Correction du bouton recommencer la révision.'),
+                Text('- Insertion aléatoire intelligente des cartes non connues.'),
+                Text('- Ajout d\'un mode Clair/Sombre dans les paramètres.'),
+                Divider(height: 24),
+                Text('📦 V 1.4', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                 SizedBox(height: 4),
                 Text('- Ajout du mode Révision Globale (Mélange de plusieurs paquets).'),
                 Text('- Amélioration de l\'affichage des photos (non rognées + clic pour zoomer).'),
@@ -84,6 +122,16 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('B3-Learn - Mes Paquets'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Paramètres',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => const SettingsDialog(),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.new_releases),
             tooltip: 'Notes de version',
             onPressed: () => _showReleaseNotes(context),
@@ -123,6 +171,7 @@ class HomeScreen extends ConsumerWidget {
             );
           }
 
+          final decksList = List<Deck>.from(decks);
           return Column(
             children: [
               Padding(
@@ -137,7 +186,7 @@ class HomeScreen extends ConsumerWidget {
                     showDialog(
                       context: context,
                       builder: (context) {
-                        final selectedDecks = <Deck>[...decks];
+                        final selectedDecks = <Deck>[...decksList];
                         return StatefulBuilder(
                           builder: (context, setStateDialog) {
                             return AlertDialog(
@@ -152,9 +201,9 @@ class HomeScreen extends ConsumerWidget {
                                     Expanded(
                                       child: ListView.builder(
                                         shrinkWrap: true,
-                                        itemCount: decks.length,
+                                        itemCount: decksList.length,
                                         itemBuilder: (context, index) {
-                                          final d = decks[index];
+                                          final d = decksList[index];
                                           return CheckboxListTile(
                                             title: Text(d.title),
                                             value: selectedDecks.contains(d),
@@ -203,12 +252,21 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: ReorderableListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: decks.length,
+                  itemCount: decksList.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (newIndex > oldIndex) {
+                      newIndex -= 1;
+                    }
+                    final deck = decksList.removeAt(oldIndex);
+                    decksList.insert(newIndex, deck);
+                    ref.read(deckServiceProvider).updateDecksOrder(decksList);
+                  },
                   itemBuilder: (context, index) {
-                    final deck = decks[index];
+                    final deck = decksList[index];
                     return Card(
+                      key: ValueKey(deck.id),
                       elevation: 2,
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ListTile(
@@ -223,73 +281,79 @@ class HomeScreen extends ConsumerWidget {
                         subtitle: deck.description.isNotEmpty 
                             ? Text(deck.description, maxLines: 1, overflow: TextOverflow.ellipsis) 
                             : null,
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'edit') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CreateDeckScreen(deckToEdit: deck),
-                                ),
-                              );
-                            } else if (value == 'delete') {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Supprimer le paquet ?'),
-                                  content: const Text('Toutes les cartes de ce paquet seront supprimées. Cette action est irréversible.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Annuler'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            PopupMenuButton<String>(
+                              onSelected: (value) async {
+                                if (value == 'edit') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CreateDeckScreen(deckToEdit: deck),
                                     ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                  );
+                                } else if (value == 'delete') {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Supprimer le paquet ?'),
+                                      content: const Text('Toutes les cartes de ce paquet seront supprimées. Cette action est irréversible.'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, false),
+                                          child: const Text('Annuler'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, true),
+                                          child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              );
+                                  );
 
-                              if (confirm == true) {
-                                try {
-                                  await ref.read(deckServiceProvider).deleteDeck(deck.id);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Paquet supprimé')),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Erreur: $e')),
-                                    );
+                                  if (confirm == true) {
+                                    try {
+                                      await ref.read(deckServiceProvider).deleteDeck(deck.id);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Paquet supprimé')),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Erreur: $e')),
+                                        );
+                                      }
+                                    }
                                   }
                                 }
-                              }
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Modifier'),
-                                ],
-                              ),
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Modifier'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete, color: Colors.red, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: Colors.red, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Supprimer', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
+                            const Icon(Icons.drag_handle, color: Colors.grey),
                           ],
                         ),
                         onTap: () {

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
@@ -32,6 +33,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   bool _isInitialized = false;
   bool _isFinished = false;
   int _currentIndex = 0;
+  int _restartKey = 0;
   
   DateTime? _startTime;
   Duration? _elapsedTime;
@@ -45,9 +47,12 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 
   Future<void> _initSession() async {
-    _currentIndex = 0;
-    _isFinished = false;
-    _startTime = DateTime.now();
+    setState(() {
+      _restartKey++;
+      _currentIndex = 0;
+      _isFinished = false;
+      _startTime = DateTime.now();
+    });
 
     if (widget.deck != null) {
       // --- REVISION CLASSIQUE D'UN PAQUET ---
@@ -206,6 +211,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   }
                   await ref.read(activeSessionProvider.notifier).startNewSession(widget.deck!.id, cardIds);
                   setState(() {
+                    _restartKey++;
                     _cardsToReview = cardIds.map((id) => cardsAsync.value!.firstWhere((c) => c.id == id)).toList();
                     _currentIndex = 0;
                     _isFinished = false;
@@ -251,6 +257,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ),
                 Expanded(
                   child: CardSwiper(
+                    key: ValueKey(_restartKey),
                     controller: _swiperController,
                     cardsCount: _cardsToReview.length,
                     isLoop: false,
@@ -270,9 +277,19 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                       
                       setState(() {
                         if (!known) {
-                          _cardsToReview.add(swipedCard);
+                          if (widget.shuffle && _cardsToReview.length > _currentIndex + 1) {
+                            final minIndex = _currentIndex + 1;
+                            final maxIndex = _cardsToReview.length;
+                            final insertIndex = minIndex + Random().nextInt(maxIndex - minIndex + 1);
+                            if (insertIndex >= _cardsToReview.length) {
+                              _cardsToReview.add(swipedCard);
+                            } else {
+                              _cardsToReview.insert(insertIndex, swipedCard);
+                            }
+                          } else {
+                            _cardsToReview.add(swipedCard);
+                          }
                         }
-                        // increment current index
                         _currentIndex++;
                       });
                       return true;

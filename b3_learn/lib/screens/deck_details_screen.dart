@@ -46,6 +46,8 @@ class DeckDetailsScreen extends ConsumerWidget {
             );
           }
 
+          final cardsList = cards.toList();
+
           return Column(
             children: [
               Padding(
@@ -100,12 +102,21 @@ class DeckDetailsScreen extends ConsumerWidget {
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: ReorderableListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: cards.length,
+                  itemCount: cardsList.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (oldIndex < newIndex) {
+                      newIndex -= 1;
+                    }
+                    final card = cardsList.removeAt(oldIndex);
+                    cardsList.insert(newIndex, card);
+                    ref.read(flashcardServiceProvider).updateFlashcardsOrder(deck.id, cardsList);
+                  },
                   itemBuilder: (context, index) {
-                    final card = cards[index];
+                    final card = cardsList[index];
                     return Card(
+                      key: ValueKey(card.id),
                       elevation: 2,
                       margin: const EdgeInsets.only(bottom: 12),
                       child: Padding(
@@ -170,6 +181,8 @@ class DeckDetailsScreen extends ConsumerWidget {
                                         }
                                       },
                                     ),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.drag_handle, color: Colors.grey),
                                   ],
                                 ),
                               ],

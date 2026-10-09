@@ -7,20 +7,31 @@ class DeckService {
   // Récupérer le flux (stream) de tous les paquets
   Stream<List<Deck>> getDecks() {
     return _firestore.collection('decks')
-      .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((snapshot) => snapshot.docs
-        .map((doc) => Deck.fromMap(doc.data(), doc.id))
-        .toList());
+      .map((snapshot) {
+        final decks = snapshot.docs
+          .map((doc) => Deck.fromMap(doc.data(), doc.id))
+          .toList();
+        
+        decks.sort((a, b) {
+          if (a.order != b.order) {
+            return a.order.compareTo(b.order);
+          }
+          return a.createdAt.compareTo(b.createdAt);
+        });
+        
+        return decks;
+      });
   }
 
   // Ajouter un nouveau paquet
   Future<void> addDeck(String title, String description) async {
     final newDeck = Deck(
-      id: '', // Firebase s'en chargera
+      id: '',
       title: title,
       description: description,
       createdAt: DateTime.now(),
+      order: DateTime.now().millisecondsSinceEpoch, // Toujours à la fin
     );
     await _firestore.collection('decks').add(newDeck.toMap());
   }
@@ -32,15 +43,23 @@ class DeckService {
       'description': description,
     });
   }
+  
+  // Réordonner les paquets
+  Future<void> updateDecksOrder(List<Deck> decks) async {
+    final batch = _firestore.batch();
+    for (int i = 0; i < decks.length; i++) {
+      final ref = _firestore.collection('decks').doc(decks[i].id);
+      batch.update(ref, {'order': i});
+    }
+    await batch.commit();
+  }
 
   // Supprimer un paquet
   Future<void> deleteDeck(String deckId) async {
-    // 1. Récupérer et supprimer toutes les cartes du paquet
     final flashcards = await _firestore.collection('decks').doc(deckId).collection('flashcards').get();
     for (var doc in flashcards.docs) {
       await doc.reference.delete();
     }
-    // 2. Supprimer le paquet lui-même
     await _firestore.collection('decks').doc(deckId).delete();
   }
 }
