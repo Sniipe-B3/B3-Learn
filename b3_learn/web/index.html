@@ -116,7 +116,27 @@
     <h2>Chargement de B3-Learn...</h2>
   </div>
 
-  <!-- The script flutter_bootstrap.js will initialize Flutter -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Force la désinscription des anciens Service Workers et vide le cache
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (let name of names)
+          caches.delete(name);
+      });
+    }
+
+    // Force le rechargement sans cache
+    var script = document.createElement("script");
+    script.src = "flutter_bootstrap.js?v=" + new Date().getTime();
+    script.async = true;
+    document.body.appendChild(script);
+  </script>
 </body>
 </html>
