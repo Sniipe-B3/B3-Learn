@@ -52,5 +52,36 @@ class FlashcardService {
         .collection('flashcards')
         .add(newCard.toMap());
   }
-}
 
+  // Mettre à jour une carte
+  Future<void> updateFlashcard({
+    required String deckId,
+    required String flashcardId,
+    required String frontText,
+    String? frontImageUrl,
+    required String backText,
+    String? backImageUrl,
+  }) async {
+    await _firestore
+        .collection('decks')
+        .doc(deckId)
+        .collection('flashcards')
+        .doc(flashcardId)
+        .update({
+      'frontText': frontText,
+      'frontImageUrl': frontImageUrl,
+      'backText': backText,
+      'backImageUrl': backImageUrl,
+    });
+  }
+
+  // Supprimer une carte
+  Future<void> deleteFlashcard(String deckId, String flashcardId) async {
+    await _firestore
+        .collection('decks')
+        .doc(deckId)
+        .collection('flashcards')
+        .doc(flashcardId)
+        .delete();
+  }
+}

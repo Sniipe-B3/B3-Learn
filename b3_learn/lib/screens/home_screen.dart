@@ -17,7 +17,13 @@ class HomeScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('✨ V 1.2.1 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                Text('✨ V 1.3 (Actuelle)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                SizedBox(height: 4),
+                Text('- Ajout de l\'édition de paquets et de cartes (CRUD).'),
+                Text('- Ajout de la suppression de paquets et de cartes.'),
+                Text('- Ajout d\'une animation de chargement PWA personnalisée.'),
+                Divider(height: 24),
+                Text('📦 V 1.2.1', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                 SizedBox(height: 4),
                 Text('- Correction: Bouton Play bien visible dans les paquets.'),
                 Text('- Correction: Animation de retournement de la carte (Flip).'),
@@ -123,7 +129,75 @@ class HomeScreen extends ConsumerWidget {
                   subtitle: deck.description.isNotEmpty 
                       ? Text(deck.description, maxLines: 1, overflow: TextOverflow.ellipsis) 
                       : null,
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'edit') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateDeckScreen(deckToEdit: deck),
+                          ),
+                        );
+                      } else if (value == 'delete') {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Supprimer le paquet ?'),
+                            content: const Text('Toutes les cartes de ce paquet seront supprimées. Cette action est irréversible.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Annuler'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          try {
+                            await ref.read(deckServiceProvider).deleteDeck(deck.id);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Paquet supprimé')),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Erreur: $e')),
+                              );
+                            }
+                          }
+                        }
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 20),
+                            SizedBox(width: 8),
+                            Text('Modifier'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red, size: 20),
+                            SizedBox(width: 8),
+                            Text('Supprimer', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,

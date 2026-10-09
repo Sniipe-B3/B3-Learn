@@ -24,5 +24,23 @@ class DeckService {
     );
     await _firestore.collection('decks').add(newDeck.toMap());
   }
-}
 
+  // Mettre à jour un paquet
+  Future<void> updateDeck(String deckId, String title, String description) async {
+    await _firestore.collection('decks').doc(deckId).update({
+      'title': title,
+      'description': description,
+    });
+  }
+
+  // Supprimer un paquet
+  Future<void> deleteDeck(String deckId) async {
+    // 1. Récupérer et supprimer toutes les cartes du paquet
+    final flashcards = await _firestore.collection('decks').doc(deckId).collection('flashcards').get();
+    for (var doc in flashcards.docs) {
+      await doc.reference.delete();
+    }
+    // 2. Supprimer le paquet lui-même
+    await _firestore.collection('decks').doc(deckId).delete();
+  }
+}

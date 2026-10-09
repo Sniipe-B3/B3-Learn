@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/deck_provider.dart';
+import '../models/deck.dart';
 
 class CreateDeckScreen extends ConsumerStatefulWidget {
-  const CreateDeckScreen({super.key});
+  final Deck? deckToEdit;
+  const CreateDeckScreen({super.key, this.deckToEdit});
 
   @override
   ConsumerState<CreateDeckScreen> createState() => _CreateDeckScreenState();
@@ -15,6 +17,15 @@ class _CreateDeckScreenState extends ConsumerState<CreateDeckScreen> {
   String _description = '';
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.deckToEdit != null) {
+      _title = widget.deckToEdit!.title;
+      _description = widget.deckToEdit!.description;
+    }
+  }
+
   Future<void> _saveDeck() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -25,18 +36,32 @@ class _CreateDeckScreenState extends ConsumerState<CreateDeckScreen> {
 
       try {
         final deckService = ref.read(deckServiceProvider);
-        await deckService.addDeck(_title, _description);
+        
+        if (widget.deckToEdit == null) {
+          // Création
+          await deckService.addDeck(_title, _description);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Paquet créé avec succès !')),
+            );
+          }
+        } else {
+          // Mise à jour
+          await deckService.updateDeck(widget.deckToEdit!.id, _title, _description);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Paquet modifié avec succès !')),
+            );
+          }
+        }
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Paquet créé avec succès !')),
-          );
           Navigator.pop(context);
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur lors de la création : $e')),
+            SnackBar(content: Text('Erreur : $e')),
           );
         }
       } finally {
@@ -51,9 +76,11 @@ class _CreateDeckScreenState extends ConsumerState<CreateDeckScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.deckToEdit != null;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nouveau Paquet'),
+        title: Text(isEditing ? 'Modifier le paquet' : 'Nouveau Paquet'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -63,6 +90,7 @@ class _CreateDeckScreenState extends ConsumerState<CreateDeckScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
+                initialValue: _title,
                 decoration: const InputDecoration(
                   labelText: 'Nom du paquet',
                   border: OutlineInputBorder(),
@@ -78,6 +106,7 @@ class _CreateDeckScreenState extends ConsumerState<CreateDeckScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
+                initialValue: _description,
                 decoration: const InputDecoration(
                   labelText: 'Description (Optionnelle)',
                   border: OutlineInputBorder(),
@@ -96,9 +125,9 @@ class _CreateDeckScreenState extends ConsumerState<CreateDeckScreen> {
                 onPressed: _isLoading ? null : _saveDeck,
                 child: _isLoading 
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Créer le paquet',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    : Text(
+                        isEditing ? 'Enregistrer les modifications' : 'Créer le paquet',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
             ],

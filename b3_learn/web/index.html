@@ -1,46 +1,122 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Application de Flashcards pour apprendre efficacement.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="b3_learn">
+  <meta name="apple-mobile-web-app-title" content="B3-Learn">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>b3_learn</title>
+  <title>B3-Learn</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      background-color: #121212;
+      color: #FFFFFF;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+
+    #loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+    }
+
+    .card-stack {
+      position: relative;
+      width: 120px;
+      height: 160px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #1E1E1E;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+      border: 1px solid #333;
+    }
+
+    .card-content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      font-size: 32px;
+      font-weight: bold;
+      color: #FFC107;
+    }
+
+    .card-3 {
+      transform: translateY(-10px) scale(0.9);
+      opacity: 0.5;
+      z-index: 1;
+    }
+
+    .card-2 {
+      transform: translateY(-5px) scale(0.95);
+      opacity: 0.8;
+      z-index: 2;
+    }
+
+    .swiping-card {
+      background-color: #673AB7;
+      z-index: 3;
+      animation: swipe-right 2s infinite ease-in-out;
+      transform-origin: bottom center;
+    }
+
+    @keyframes swipe-right {
+      0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+      40% { transform: translateX(120px) rotate(20deg); opacity: 0; }
+      41% { transform: translateX(-120px) rotate(-20deg); opacity: 0; }
+      50% { transform: translateX(-120px) rotate(-20deg); opacity: 0; }
+      100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: #bbbbbb;
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <div id="loading-container">
+    <div class="card-stack">
+      <div class="card card-3"></div>
+      <div class="card card-2"></div>
+      <div class="card swiping-card">
+        <div class="card-content">B3</div>
+      </div>
+    </div>
+    <h2>Chargement de B3-Learn...</h2>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <!-- The script flutter_bootstrap.js will initialize Flutter -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
