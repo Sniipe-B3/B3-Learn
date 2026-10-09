@@ -2,40 +2,10 @@ import '../models/deck.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/deck_provider.dart';
-import '../providers/theme_provider.dart';
+import '../widgets/settings_button.dart';
 import 'create_deck_screen.dart';
 import 'deck_details_screen.dart';
 import 'review_screen.dart';
-
-class SettingsDialog extends ConsumerWidget {
-  const SettingsDialog({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
-    return AlertDialog(
-      title: const Text('Paramètres'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SwitchListTile(
-            title: const Text('Mode Sombre'),
-            value: themeMode == ThemeMode.dark,
-            onChanged: (val) {
-              ref.read(themeProvider.notifier).toggleTheme(val);
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fermer'),
-        ),
-      ],
-    );
-  }
-}
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -121,16 +91,7 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('B3-Learn - Mes Paquets'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Paramètres',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => const SettingsDialog(),
-              );
-            },
-          ),
+          const SettingsButton(),
           IconButton(
             icon: const Icon(Icons.new_releases),
             tooltip: 'Notes de version',
@@ -253,6 +214,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               Expanded(
                 child: ReorderableListView.builder(
+                  buildDefaultDragHandles: false,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: decksList.length,
                   onReorder: (oldIndex, newIndex) {
@@ -265,10 +227,12 @@ class HomeScreen extends ConsumerWidget {
                   },
                   itemBuilder: (context, index) {
                     final deck = decksList[index];
-                    return Card(
+                    return ReorderableDelayedDragStartListener(
                       key: ValueKey(deck.id),
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 12),
+                      index: index,
+                      child: Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 12),
                       child: ListTile(
                         leading: const CircleAvatar(
                           backgroundColor: Colors.deepPurple,
@@ -353,7 +317,6 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                            const Icon(Icons.drag_handle, color: Colors.grey),
                           ],
                         ),
                         onTap: () {
@@ -364,6 +327,7 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           );
                         },
+                        ),
                       ),
                     );
                   },

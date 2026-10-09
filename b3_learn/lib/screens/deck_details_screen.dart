@@ -5,6 +5,7 @@ import '../providers/flashcard_provider.dart';
 import 'create_flashcard_screen.dart';
 import 'review_screen.dart';
 import '../widgets/zoomable_image.dart';
+import '../widgets/settings_button.dart';
 
 class DeckDetailsScreen extends ConsumerWidget {
   final Deck deck;
@@ -17,6 +18,9 @@ class DeckDetailsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(deck.title),
+        actions: const [
+          SettingsButton(),
+        ],
       ),
       body: flashcardsAsync.when(
         data: (cards) {
@@ -103,6 +107,7 @@ class DeckDetailsScreen extends ConsumerWidget {
               ),
               Expanded(
                 child: ReorderableListView.builder(
+                  buildDefaultDragHandles: false,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: cardsList.length,
                   onReorder: (oldIndex, newIndex) {
@@ -115,10 +120,12 @@ class DeckDetailsScreen extends ConsumerWidget {
                   },
                   itemBuilder: (context, index) {
                     final card = cardsList[index];
-                    return Card(
+                    return ReorderableDelayedDragStartListener(
                       key: ValueKey(card.id),
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 12),
+                      index: index,
+                      child: Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 12),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -128,61 +135,73 @@ class DeckDetailsScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text('RECTO', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, size: 20),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => CreateFlashcardScreen(deckId: deck.id, cardToEdit: card),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                                      onPressed: () async {
-                                        final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Supprimer la carte ?'),
-                                            content: const Text('Cette action est irréversible.'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(context, false),
-                                                child: const Text('Annuler'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(context, true),
-                                                child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
-                                              ),
-                                            ],
-                                          ),
-                                        );
+                                PopupMenuButton<String>(
+                                  onSelected: (value) async {
+                                    if (value == 'edit') {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CreateFlashcardScreen(deckId: deck.id, cardToEdit: card),
+                                        ),
+                                      );
+                                    } else if (value == 'delete') {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Supprimer la carte ?'),
+                                          content: const Text('Cette action est irréversible.'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, false),
+                                              child: const Text('Annuler'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, true),
+                                              child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
 
-                                        if (confirm == true) {
-                                          try {
-                                            await ref.read(flashcardServiceProvider).deleteFlashcard(deck.id, card.id);
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('Carte supprimée')),
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Erreur: $e')),
-                                              );
-                                            }
+                                      if (confirm == true) {
+                                        try {
+                                          await ref.read(flashcardServiceProvider).deleteFlashcard(deck.id, card.id);
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Carte supprimée')),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Erreur: $e')),
+                                            );
                                           }
                                         }
-                                      },
+                                      }
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit, size: 20),
+                                          SizedBox(width: 8),
+                                          Text('Modifier'),
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    const Icon(Icons.drag_handle, color: Colors.grey),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete, color: Colors.red, size: 20),
+                                          SizedBox(width: 8),
+                                          Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -203,6 +222,7 @@ class DeckDetailsScreen extends ConsumerWidget {
                             Text(card.backText, style: const TextStyle(fontSize: 16)),
                           ],
                         ),
+                      ),
                       ),
                     );
                   },

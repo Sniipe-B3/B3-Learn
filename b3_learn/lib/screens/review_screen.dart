@@ -9,6 +9,7 @@ import '../models/flashcard.dart';
 import '../providers/flashcard_provider.dart';
 import '../providers/review_provider.dart';
 import '../widgets/zoomable_image.dart';
+import '../widgets/settings_button.dart';
 
 class ReviewScreen extends ConsumerStatefulWidget {
   final Deck? deck; // null = révision globale
@@ -198,6 +199,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
       appBar: AppBar(
         title: Text(widget.deck != null ? 'Révision : ${widget.deck!.title}' : 'Révision Globale'),
         actions: [
+          const SettingsButton(),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Recommencer du début',
