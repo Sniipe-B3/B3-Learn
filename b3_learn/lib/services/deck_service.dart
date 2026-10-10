@@ -3,10 +3,16 @@ import '../models/deck.dart';
 
 class DeckService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String? userId;
+
+  DeckService({this.userId});
 
   // Récupérer le flux (stream) de tous les paquets
   Stream<List<Deck>> getDecks() {
+    if (userId == null) return Stream.value([]);
+    
     return _firestore.collection('decks')
+      .where('userId', isEqualTo: userId)
       .snapshots()
       .map((snapshot) {
         final decks = snapshot.docs
@@ -26,12 +32,15 @@ class DeckService {
 
   // Ajouter un nouveau paquet
   Future<void> addDeck(String title, String description) async {
+    if (userId == null) throw Exception("Utilisateur non connecté");
+    
     final newDeck = Deck(
       id: '',
       title: title,
       description: description,
       createdAt: DateTime.now(),
       order: DateTime.now().millisecondsSinceEpoch, // Toujours à la fin
+      userId: userId!,
     );
     await _firestore.collection('decks').add(newDeck.toMap());
   }

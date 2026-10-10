@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/theme_provider.dart';
+import '../providers/auth_provider.dart';
 
 class SettingsDialog extends ConsumerWidget {
   const SettingsDialog({super.key});
@@ -18,6 +19,15 @@ class SettingsDialog extends ConsumerWidget {
             value: themeMode == ThemeMode.dark,
             onChanged: (val) {
               ref.read(themeProvider.notifier).toggleTheme(val);
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Se déconnecter', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context); // Fermer la modale
+              ref.read(authServiceProvider).signOut();
             },
           ),
         ],

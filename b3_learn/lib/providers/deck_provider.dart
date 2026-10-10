@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/deck.dart';
 import '../services/deck_service.dart';
+import 'auth_provider.dart';
 
 // Provider pour le service Firebase
 final deckServiceProvider = Provider<DeckService>((ref) {
-  return DeckService();
+  final user = ref.watch(authStateProvider).value;
+  return DeckService(userId: user?.uid);
 });
 
 // StreamProvider pour écouter en temps réel la liste des paquets
